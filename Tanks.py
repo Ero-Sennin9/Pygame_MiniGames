@@ -47,6 +47,34 @@ grasses = pg.sprite.Group()
 patrons = pg.sprite.Group()
 boom = pg.sprite.Group()
 health = pg.sprite.Group()
+fires = pg.sprite.Group()
+
+
+def angle_p(vec):  # рассчет угла поворота исходя из вектора скорости
+    x, y = vec
+    result = None
+    if x == 0 or y == 0:
+        if x == 0:
+            if y < 0:
+                result = 0
+            elif y > 0:
+                result = 180
+        elif y == 0:
+            if x < 0:
+                result = 270
+            elif x > 0:
+                result = 90
+    else:
+        angle1 = math.degrees(math.atan(abs(y) / abs(x)))
+        if x < 0 and y < 0:
+            result = 270 + angle1
+        elif x > 0 and y > 0:
+            result = 90 + angle1
+        elif x > 0 and y < 0:
+            result = 90 - angle1
+        elif x < 0 and y > 0:
+            result = 270 - angle1
+    return result
 
 
 class AnimatedSprite(pygame.sprite.Sprite):  # анимация спрайтов
@@ -97,6 +125,26 @@ class Boom(AnimatedSprite):  # анимация взрыва
         self.image = self.frames[self.cur_frame]
 
 
+class Fire(AnimatedSprite):  # анимация пожара
+    sheet = load_image('fire.png')
+
+    def __init__(self, player, time):
+        super().__init__(player.rect.centerx, player.rect.centery - 40, self.sheet, 4, 4)
+        fires.add(self)  # добавление спрайта в группу пожара
+        self.time = time
+        self.player = player
+
+    def update(self):  # анимация взрыва
+        self.rect.center = self.player.rect.centerx, self.player.rect.centery - 40
+        self.cur_frame = self.cur_frame + 1
+        self.cur_frame %= self.count_frames
+        self.time -= 1
+        if self.time <= 0:  # уничтожение спрайта, если эффект окончен
+            self.kill()
+        self.image = self.frames[self.cur_frame]
+        self.player.damage(0.089)
+
+
 class HealthBar(pg.sprite.Sprite):  # класс полоски здоровья
     def __init__(self, size, pos, height):
         super().__init__(health)
@@ -120,7 +168,8 @@ class HealthBar(pg.sprite.Sprite):  # класс полоски здоровья
 
 
 class Tank(pg.sprite.Sprite):  # класс танка
-    data = [load_image('tank1.png'), load_image('tank2.png')]  # загрузка изображений двух игроков
+    data = [pygame.transform.scale(load_image('tank1.png'), (40, 55)),
+            pygame.transform.scale(load_image('tank2.png'), (40, 55))]  # загрузка изображений двух игроков
 
     def __init__(self, pos, rotation, player, control):
         super().__init__(players)
@@ -167,8 +216,8 @@ class Tank(pg.sprite.Sprite):  # класс танка
             self.velocity[0] -= TANK_A
         elif self.velocity[0] < 0:
             self.velocity[0] += TANK_A
-        if self.angle_p(self.velocity) != None and any(self.data):  # поворот танка исходя из вектора скорости
-            self.rotate(self.angle_p(self.velocity))
+        if angle_p(self.velocity) != None and any(self.data):  # поворот танка исходя из вектора скорости
+            self.rotate(angle_p(self.velocity))
         if self.rect.centerx >= WIDTH - 20 and self.velocity[0] > 0:  # танк не может уйти за границы карты
             self.velocity[0] = 0
         elif self.rect.centery >= HEIGHT - 20 and self.velocity[1] > 0:
@@ -182,7 +231,7 @@ class Tank(pg.sprite.Sprite):  # класс танка
         self.mask = pg.mask.from_surface(self.image)  # обновление маски, так как он все время поворачивается
         if pg.sprite.spritecollide(self, rocks, dokill=False, collided=pg.sprite.collide_mask):  # при столкновении с камнем снижается скорость и наносится урон
             self.slowing = 4
-            self.damage(0.044)
+            self.damage(0.02)
         else:
             self.slowing = 1
 
@@ -197,42 +246,18 @@ class Tank(pg.sprite.Sprite):  # класс танка
         a, b = math.sin(math.radians(self.angle)) * SPEED_PATRON, -math.cos(math.radians(self.angle)) * SPEED_PATRON  # рассчет вектора скорости пули исходя из угла поворота танка
         Patron((a, b), self.rect.center, self.angle, self)  # создание пули
 
-    def angle_p(self, vec):  # рассчет угла поворота исходя из вектора скорости
-        x, y = vec
-        result = None
-        if x == 0 or y == 0:
-            if x == 0:
-                if y < 0:
-                    result = 0
-                elif y > 0:
-                    result = 180
-            elif y == 0:
-                if x < 0:
-                    result = 270
-                elif x > 0:
-                    result = 90
-        else:
-            angle1 = math.degrees(math.atan(abs(y) / abs(x)))
-            if x < 0 and y < 0:
-                result = 270 + angle1
-            elif x > 0 and y > 0:
-                result = 90 + angle1
-            elif x > 0 and y < 0:
-                result = 90 - angle1
-            elif x < 0 and y > 0:
-                result = 270 - angle1
-        return result
-
     def update(self):  # обновление состояние танка
         self.health_bar.update(self)  # обновление полоски со здоровьем
 
     def damage(self, dam):  # нанесение урона танку
         self.hp -= dam
 
-    def return_hp(self):  # восстановление здоровья танку и обнуление скорости
+    def return_hp(self):  # возвращение танка в начальную позицию
         self.hp = 100
         self.velocity = [0, 0]
         self.angle = self.rotation
+        self.data = [False, False, False, False]
+        self.image = pg.transform.rotate(self.image2, 360 - self.rotation)
 
 
 class Patron(pg.sprite.Sprite):
@@ -246,16 +271,33 @@ class Patron(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.player = player
+        self.collide_with_tank = True  # возможность столкновения с танком
 
     def update(self):
         for elem in players:
             if elem != self.player:
-                if not pg.sprite.collide_mask(self, elem):  # если нее сталкивается с другим игроком, то продолжает движение
+                if not pg.sprite.collide_mask(self, elem):  # если не сталкивается с другим игроком, то продолжает движение
                     self.rect.move_ip(*self.speed)
                 else:
-                    elem.damage(30)  # нанесение урона при обратном
-                    Boom(*elem.rect.center)  # взрыв танка
-                    self.kill()  # уничтожение пули
+                    if self.collide_with_tank:
+                        dam = random.randint(4, 10) if random.randint(1, 3) == 2 else random.randint(22, 30)
+                        elem.damage(dam)  # нанесение урона при обратном
+                        if dam >= 20:  # попадание по танку
+                            Boom(*elem.rect.center)  # взрыв танка
+                            self.kill()  # уничтожение пули
+                            if random.randint(1, 10) == 1:  # c небольшой вероятностью вызывается пожар
+                                Fire(elem, random.randint(10 * FPS, 20 * FPS))
+                        else:  # если произошел рикошет - меняем направление пули
+                            angle = (angle_p(self.speed) + random.randint(-28, 28)) % 360
+                            angle = 360 - abs(angle) if angle < 0 else angle
+                            self.speed = (math.sin(math.radians(angle)) * SPEED_PATRON,
+                                          -math.cos(math.radians(angle)) * SPEED_PATRON)
+                            self.image = pg.transform.rotate(self.pat, 360 - angle)
+                            self.mask = pygame.mask.from_surface(self.image)
+                        self.collide_with_tank = False
+                    else:
+                        self.rect.move_ip(*self.speed)
+
         if pg.sprite.spritecollide(self, rocks, dokill=False, collided=pygame.sprite.collide_mask):  # столкновение с камнем
             Boom(*self.rect.center)  # взрыв пули
             self.kill()  # уничтожение пули
@@ -348,22 +390,23 @@ if __name__ == '__main__':
 
         if game:
             player1.move(events), player2.move(events)  # передвижение игроков
-        players.update(), patrons.update(), boom.update() # обновление спрайтов(анимация, движение, взрывы, обновление полоски здоровья)
+        players.update(), patrons.update(), boom.update(), fires.update() # обновление спрайтов(анимация, движение, взрывы, обновление полоски здоровья)
         if pygame.sprite.collide_mask(player1, player2):  # при столкновении двух танков наносится урон и накладывается эффект замедления
             player1.slowing, player2.slowing = 4, 4
             if colision:
                 speedx, speedy = abs(player1.velocity[0] - player2.velocity[0]), abs(player1.velocity[1] - player2.velocity[1])
                 speed = (speedx ** 2 + speedy ** 2) ** 0.5
                 damage = (speed / (2 * (SPEED_TANK * 2) ** 2) ** 0.5) * 100
+                damage = random.choice([damage / 4, damage / 3, damage / 2, damage])
                 player1.damage(damage), player2.damage(damage)  # нанесение урона при аварии
                 if damage >= 30:
                     Boom(*player1.rect.center), Boom(*player2.rect.center)  # взрывы при аварии
                 colision = False
-            player1.damage(0.08), player2.damage(0.08)
+            player1.damage(0.03), player2.damage(0.03)
         else:
             colision = True
-        screen.blit(pole, (0, 0)), patrons.draw(screen), rocks.draw(screen)  # отрисовка кадра
-        players.draw(screen), health.draw(screen), grasses.draw(screen), boom.draw(screen)
+        screen.blit(pole, (0, 0)), rocks.draw(screen), players.draw(screen)  # отрисовка кадра
+        patrons.draw(screen), fires.draw(screen), health.draw(screen), grasses.draw(screen), boom.draw(screen)
         if not game:  # если игра окончена, выводится сообщение с результатом
             text = font.render(f'Игра окончена, {text0}', True, pygame.Color('red'))  # рендер текста
             text2 = font2.render('Нажмите p для перезапуска', True, pygame.Color('yellow'))
