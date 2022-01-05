@@ -15,37 +15,39 @@ def terminate():
 
 def load_level(filename):
     filename = "photos/" + filename
-    # читаем уровень, убирая символы перевода строки
+
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
 
-    # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
 
-    # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda s: s.ljust(max_width, '.'), level_map))
 
 
 def generate_level(level):
-    new_player, x, y = None, None, None  # размеры игрового поля
+    new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
                 Tile('empty', x, y)
+            elif level[y][x] == '*':
+                Tile('selector1', x, y)
+            elif level[y][x] == '%':
+                Tile('selector2', x, y)
             elif level[y][x] == '&':
-                Tile('selector', x, y)
+                Tile('selector3', x, y)
             elif level[y][x] == '#':
                 Tile('wall', x, y)
+            elif level[y][x] == '$':
+                Tile('grass', x, y)
             elif level[y][x] == '@':
                 Tile('empty', x, y)
                 new_player = Player(level, x, y)
-    # вернем игрока, а также размер поля в клетках
     return new_player, x, y
 
 
 def load_image(name, colorkey=None):
     fullname = os.path.join('photos', name)
-    # если файл не существует, то выходим
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -63,7 +65,6 @@ def load_image(name, colorkey=None):
 def start_screen():
     bgcolor = (51, 51, 51)
     font_color = (255, 255, 153)
-    highlite_color = (153, 102, 255)
     font = pygame.font.Font('coders_crux/Coders_Crux.ttf', 72)
     surface_width = 800
     surface_height = 600
@@ -139,12 +140,15 @@ class Player(pygame.sprite.Sprite):
 
 
 if __name__ == '__main__':
-    pygame.display.set_caption('Перемещение героя')
+    pygame.display.set_caption('mini-games')
     clock = pygame.time.Clock()
     tile_images = {
         'wall': load_image('Wall_Block_Tall.png'),
-        'selector': load_image('Selector.png'),
-        'empty': load_image('Plain_Block.png')
+        'selector1': load_image('Selector1.png'),
+        'selector2': load_image('Selector2.png'),
+        'selector3': load_image('Selector3.png'),
+        'empty': load_image('Plain_Block.png'),
+        'grass': load_image('Grass_Block.png')
     }
     player_image = load_image('boy.png')
     tile_width = tile_height = 50
@@ -152,7 +156,6 @@ if __name__ == '__main__':
     start_screen()
 
     player = None
-    # группы спрайтов
     all_sprites = pygame.sprite.Group()
     tiles_group = pygame.sprite.Group()
     player_group = pygame.sprite.Group()
@@ -163,6 +166,7 @@ if __name__ == '__main__':
         for event in events:
             if event.type == pygame.QUIT:
                 running = False
+        screen.fill((163, 205, 229))
         player.update(events)
         tiles_group.draw(screen)
         player_group.draw(screen)
