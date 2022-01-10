@@ -1,6 +1,9 @@
 import pygame
 import sys
 import os
+import Tanks
+import test
+import runner1
 
 FPS = 50
 size = WIDTH, HEIGHT = 800, 600
@@ -92,7 +95,7 @@ def start_screen():
                 terminate()
             elif event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
+                return
         clock.tick(FPS)
 
 
@@ -125,6 +128,15 @@ class Player(pygame.sprite.Sprite):
                 self.x = x
                 self.y = y
                 self.repaint()
+            if self.level[y][x] == '&':
+                Tanks.tanks()
+                screen = pygame.display.set_mode(size)
+            if self.level[y][x] == '*':
+                runner1.runner()
+                screen = pygame.display.set_mode(size)
+            if self.level[y][x] == '%':
+                test.test()
+                screen = pygame.display.set_mode(size)
 
     def update(self, events):
         for event in events:
