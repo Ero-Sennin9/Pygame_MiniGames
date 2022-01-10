@@ -115,7 +115,7 @@ class Player(pygame.sprite.Sprite):
 
     def repaint(self):
         self.rect = self.image.get_rect().move(
-            tile_width * self.x + 13, tile_height * self.y + 5)
+            tile_width * self.x + 3, tile_height * self.y + 3)
 
     def move(self, dx, dy):
         x = self.x + dx
