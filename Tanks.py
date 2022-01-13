@@ -16,6 +16,20 @@ SPEED_TANK = 4  # максимальная скорость танка
 SPEED_PATRON = 20  # скорость патрона
 TANK_A = round(0.2, 1)  # ускорение танка при нажатии на кнопки движения
 GRASS_STONES = (80, 80)  # размер камней и травы
+RELOAD = 6  # время перезарядки
+fire = False  # наличие огня
+
+
+boom_sound1 = pygame.mixer.Sound('sounds/boom.mp3')  # звуки
+boom_sound2 = pygame.mixer.Sound('sounds/probitie1.mp3')
+boom_sound3 = pygame.mixer.Sound('sounds/probitie-2.mp3')
+rik_sound1 = pygame.mixer.Sound('sounds/rikoshet.mp3')
+rik_sound2 = pygame.mixer.Sound('sounds/rikoshet1.mp3')
+game_over = pygame.mixer.Sound('sounds/tank-unichtozhen.mp3')
+pojar = pygame.mixer.Sound('sounds/pojar.mp3')
+boom_sounds = list([pygame.mixer.Channel(1), pygame.mixer.Channel(2)])  # списки для хранения каналов для воспроизведения
+rik_sounds = list([pygame.mixer.Channel(3), pygame.mixer.Channel(4)])
+pojar_channel = pygame.mixer.Channel(0)
 
 
 def terminate():  # закрытие окна
@@ -131,18 +145,21 @@ class Fire(AnimatedSprite):  # анимация пожара
     def __init__(self, player, time):
         super().__init__(player.rect.centerx, player.rect.centery - 40, self.sheet, 4, 4)
         fires.add(self)  # добавление спрайта в группу пожара
-        self.time = time
-        self.player = player
+        self.time = time  # время действия пожара
+        self.player = player  # игрок с этим эффектом
 
     def update(self):  # анимация взрыва
+        global fire
         self.rect.center = self.player.rect.centerx, self.player.rect.centery - 40
         self.cur_frame = self.cur_frame + 1
         self.cur_frame %= self.count_frames
         self.time -= 1
         if self.time <= 0:  # уничтожение спрайта, если эффект окончен
             self.kill()
+            fire = False
+            pojar_channel.pause()  # остановка пожара
         self.image = self.frames[self.cur_frame]
-        self.player.damage(0.089)
+        self.player.damage(0.089)  # урон от пожара
 
 
 class HealthBar(pg.sprite.Sprite):  # класс полоски здоровья
@@ -174,6 +191,7 @@ class Tank(pg.sprite.Sprite):  # класс танка
     def __init__(self, pos, rotation, player, control):
         super().__init__(players)
         self.pos = pos
+        self.player = player  # номер игрока
         self.control = control  # клавиши для управления танком
         self.image = pygame.transform.rotate(self.data[player - 1], 360 - rotation)  # картинки для спрайтов исходя из номера игрока
         self.image2 = self.data[player - 1]  # а также поворот картинки
@@ -187,6 +205,7 @@ class Tank(pg.sprite.Sprite):  # класс танка
         self.slowing = 1  # замедление танка
         self.hp = 100  # здоровье танка
         self.health_bar = HealthBar([100, 18], (self.pos[0], self.pos[1] - 50), 50)  # задание полоски здоровья
+        self.reload_center = (75, 38)  # центр значка перезарядки относительно центра танка
 
     def move(self, events):  # управление танком
         for i in events:
@@ -246,13 +265,17 @@ class Tank(pg.sprite.Sprite):  # класс танка
         a, b = math.sin(math.radians(self.angle)) * SPEED_PATRON, -math.cos(math.radians(self.angle)) * SPEED_PATRON  # рассчет вектора скорости пули исходя из угла поворота танка
         Patron((a, b), self.rect.center, self.angle, self)  # создание пули
 
-    def update(self):  # обновление состояние танка
+    def update(self, time):  # обновление состояние танка
         self.health_bar.update(self)  # обновление полоски со здоровьем
+        angle = (time[self.player - 1] / (RELOAD * FPS)) * 2 * math.pi
+        pygame.draw.arc(screen, pygame.Color('blue'), (self.rect.centerx + self.reload_center[0] - 20,
+                                                       self.rect.centery - self.reload_center[1] - 20, 20, 20),
+                        0, angle, 5)  # состояние перезарядки
 
     def damage(self, dam):  # нанесение урона танку
         self.hp -= dam
 
-    def return_hp(self):  # возвращение танка в начальную позицию
+    def return_tank(self):  # возвращение танка в начальную позицию
         self.hp = 100
         self.velocity = [0, 0]
         self.angle = self.rotation
@@ -274,20 +297,25 @@ class Patron(pg.sprite.Sprite):
         self.collide_with_tank = True  # возможность столкновения с танком
 
     def update(self):
+        global fire, index
         for elem in players:
             if elem != self.player:
                 if not pg.sprite.collide_mask(self, elem):  # если не сталкивается с другим игроком, то продолжает движение
                     self.rect.move_ip(*self.speed)
                 else:
                     if self.collide_with_tank:
-                        dam = random.randint(4, 10) if random.randint(1, 3) == 2 else random.randint(22, 30)
+                        dam = random.randint(4, 10) if random.randint(1, 3) == 2 else random.randint(22, 30)  # рикошет или не рикошет + расчет урона
                         elem.damage(dam)  # нанесение урона при обратном
                         if dam >= 20:  # попадание по танку
-                            Boom(*elem.rect.center)  # взрыв танка
+                            sound = boom_sound2 if random.randint(1, 2) == 2 else boom_sound3
+                            boom_sounds[elem.player - 1].queue(boom_sound1), boom_sounds[elem.player - 1].queue(sound)  # звук взрыва
+                            Boom(*self.rect.center)  # взрыв пули
                             self.kill()  # уничтожение пули
                             if random.randint(1, 10) == 1:  # c небольшой вероятностью вызывается пожар
-                                Fire(elem, random.randint(10 * FPS, 20 * FPS))
+                                Fire(elem, random.randint(5 * FPS, 20 * FPS))
+                                fire = True
                         else:  # если произошел рикошет - меняем направление пули
+                            rik_sounds[elem.player - 1].queue(rik_sound1), rik_sounds[elem.player - 1].queue(rik_sound2)  # звук рикошета
                             angle = (angle_p(self.speed) + random.randint(-28, 28)) % 360
                             angle = 360 - abs(angle) if angle < 0 else angle
                             self.speed = (math.sin(math.radians(angle)) * SPEED_PATRON,
@@ -299,6 +327,7 @@ class Patron(pg.sprite.Sprite):
                         self.rect.move_ip(*self.speed)
 
         if pg.sprite.spritecollide(self, rocks, dokill=False, collided=pygame.sprite.collide_mask):  # столкновение с камнем
+            pygame.mixer.Sound('sounds/rock_boom.mp3').play()
             Boom(*self.rect.center)  # взрыв пули
             self.kill()  # уничтожение пули
         if self.rect.centerx >= WIDTH + self.rect.width or self.rect.centerx <= -self.rect.width:  # уничтожение пули при вылете за границы для оптимизации игры
@@ -355,19 +384,28 @@ result = []  # результат игры
 score = [0, 0]  # счет
 font, font2 = pg.font.Font(None, 50), pg.font.Font(None, 36)  # шрифты для текста
 colision = True  # необходима для нанесения урона при аварии
+time = [RELOAD * FPS, RELOAD * FPS]  # время для перезарядки в кадрах для каждого танка
 if __name__ == '__main__':
-    player1 = Tank((50, HEIGHT / 2), 90, 1, [pg.K_w, pg.K_d, pg.K_s, pg.K_a])  # создание игроков
-    player2 = Tank((WIDTH - 50, HEIGHT / 2), 270, 2, [pg.K_UP, pg.K_RIGHT, pg.K_DOWN, pg.K_LEFT])
+    player1 = Tank((60, HEIGHT / 2), 90, 1, [pg.K_w, pg.K_d, pg.K_s, pg.K_a])  # создание игроков
+    player2 = Tank((WIDTH - 80, HEIGHT / 2), 270, 2, [pg.K_UP, pg.K_RIGHT, pg.K_DOWN, pg.K_LEFT])
     all_sprites.add(player1, player2)  # добавление их в группу всех спрайтов для отслеживания столкновений при генрации карты
     generate_level(25, 25)  # генерация уровня
     while running:
+        if fire:
+            if pojar_channel.get_queue():  # звук пожара
+                pojar_channel.unpause()
+            else:
+                pojar_channel.queue(pojar)
+        time = [time[0] + 1, time[1] + 1]
         events = pg.event.get()
         if (player1.hp <= 0 or player2.hp <= 0) and game:
             if player1.hp <= 0:  # окончание игры, если у кого-то из игроков здоровья меньше 0
                 game = False
+                game_over.play()  # звук уничтожения танка
                 result.append(1)
             if player2.hp <= 0:
                 game = False
+                game_over.play()  # звук уничтожения танка
                 result.append(2)
             if len(result) == 2:  # если у игроков одновременно здоровье стало меньше нуля - ничья
                 text0 = 'ничья'
@@ -378,19 +416,25 @@ if __name__ == '__main__':
         for event in events:
             if event.type == pg.QUIT:  # выход из игры
                 running = False
-            if event.type == pg.MOUSEBUTTONDOWN and game:  # выстрел за второго игрока
+            if event.type == pg.MOUSEBUTTONDOWN and game and time[1] >= RELOAD * FPS:  # выстрел за второго игрока
+                time[1] = 0
                 player2.shoot()
-            if event.type == pg.KEYDOWN and event.key == pg.K_e and game:  # выстрел за первого игрока
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and game and time[0] >= RELOAD * FPS:  # выстрел за первого игрока
+                time[0] = 0
                 player1.shoot()
             if event.type == pg.KEYDOWN and event.key == pg.K_p:  # перезагрузка игры
+                index = 0
+                pojar_channel.pause()  # остановка пожара
                 game = True
-                player1.rect.center = (50, HEIGHT / 2)  # размещение игроков в стартовых позициях
-                player2.rect.center = (WIDTH - 50, HEIGHT / 2)
-                player1.return_hp(), player2.return_hp()  # восстановление здоровья у игроков
+                for fire in fires:  # уничтожение пожаров
+                    fire.kill()
+                fire = False
+                player1.rect.center = (60, HEIGHT / 2)  # размещение игроков в стартовых позициях
+                player2.rect.center = (WIDTH - 80, HEIGHT / 2)
+                player1.return_tank(), player2.return_tank()  # восстановление здоровья у игроков
 
         if game:
             player1.move(events), player2.move(events)  # передвижение игроков
-        players.update(), patrons.update(), boom.update(), fires.update() # обновление спрайтов(анимация, движение, взрывы, обновление полоски здоровья)
         if pygame.sprite.collide_mask(player1, player2):  # при столкновении двух танков наносится урон и накладывается эффект замедления
             player1.slowing, player2.slowing = 4, 4
             if colision:
@@ -402,11 +446,11 @@ if __name__ == '__main__':
                 if damage >= 30:
                     Boom(*player1.rect.center), Boom(*player2.rect.center)  # взрывы при аварии
                 colision = False
-            player1.damage(0.03), player2.damage(0.03)
+            player1.damage(0.03), player2.damage(0.03)  # урон при контакте
         else:
             colision = True
         screen.blit(pole, (0, 0)), rocks.draw(screen), players.draw(screen)  # отрисовка кадра
-        patrons.draw(screen), fires.draw(screen), health.draw(screen), grasses.draw(screen), boom.draw(screen)
+        patrons.draw(screen), fires.draw(screen), grasses.draw(screen), health.draw(screen), boom.draw(screen)
         if not game:  # если игра окончена, выводится сообщение с результатом
             text = font.render(f'Игра окончена, {text0}', True, pygame.Color('red'))  # рендер текста
             text2 = font2.render('Нажмите p для перезапуска', True, pygame.Color('yellow'))
@@ -419,6 +463,7 @@ if __name__ == '__main__':
         text = font.render(f'{score[0]} : {score[1]}', True, pygame.Color('green'))  # рендер текста
         text_x, text_y = text.get_width() // 2, text.get_height() // 2  # размещение текста в верхнем левом углу
         screen.blit(text, (text_x, text_y))  # отображение текста
+        players.update(time), patrons.update(), boom.update(), fires.update()  # обновление спрайтов(анимация, движение, взрывы, обновление полоски здоровья)
         clock.tick(FPS)
         pg.display.flip()  # обновление дисплея
     pg.quit()
