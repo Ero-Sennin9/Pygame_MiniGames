@@ -32,8 +32,8 @@ def runner():
                     pygame.image.load(os.path.join("Assets/Objects", "SmallCactus2.png")),
                     pygame.image.load(os.path.join("Assets/Objects", "SmallCactus3.png"))]
     LARGE_OBJECTS = [pygame.image.load(os.path.join("Assets/Objects", "rock_large.png")),
-                    pygame.image.load(os.path.join("Assets/Objects", "tree_large.png")),
-                    pygame.image.load(os.path.join("Assets/Objects", "LargeCactus3.png"))]
+                     pygame.image.load(os.path.join("Assets/Objects", "tree_large.png")),
+                     pygame.image.load(os.path.join("Assets/Objects", "LargeCactus3.png"))]
 
     BIRD = [pygame.image.load(os.path.join("Assets/Bird", "bird1.png")),
             pygame.image.load(os.path.join("Assets/Bird", "bird2.png")),
@@ -205,8 +205,76 @@ def runner():
             SCREEN.blit(self.image[self.index // 5], self.rect)
             self.index += 1
 
+    def start():
+        run = True
+        clock = pygame.time.Clock()
+        SCREEN.fill((255, 255, 255))
+        font = pygame.font.Font('freesansbold.ttf', 30)
+        text = font.render("Press any Key to Start", True, (0, 0, 0))
+        textRect = text.get_rect()
+        textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        SCREEN.blit(text, textRect)
+        SCREEN.blit(RUN[0], (SCREEN_WIDTH // 2 - 20, SCREEN_HEIGHT // 2 - 140))
+
+        pygame.display.flip()
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                elif event.type == pygame.KEYDOWN:
+                    return
+            clock.tick(30)
+
+    def final():
+        run = True
+        clock = pygame.time.Clock()
+        SCREEN.fill((255, 255, 255))
+        font = pygame.font.Font('freesansbold.ttf', 30)
+        text = font.render("Press any Key to Start", True, (0, 0, 0))
+        textRect = text.get_rect()
+        textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        SCREEN.blit(text, textRect)
+        SCREEN.blit(RUN[0], (SCREEN_WIDTH // 2 - 20, SCREEN_HEIGHT // 2 - 140))
+
+        pygame.display.flip()
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                elif event.type == pygame.KEYDOWN:
+                    main()
+            clock.tick(30)
+
+    def final_score():
+        global points, coini, death_count
+        run = True
+        clock = pygame.time.Clock()
+
+        SCREEN.blit(BG, (0, 0))
+        font = pygame.font.Font('freesansbold.ttf', 30)
+
+        score = font.render("Your Score: " + str(points), True, (255, 255, 255))
+        coinsi = font.render("Coins: " + str(coini), True, (255, 255, 255))
+        coinsRect = coinsi.get_rect()
+        scoreRect = score.get_rect()
+
+        scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50)
+        coinsRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100)
+
+        SCREEN.blit(coinsi, coinsRect)
+        SCREEN.blit(score, scoreRect)
+
+        pygame.display.flip()
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                elif event.type == pygame.KEYDOWN:
+                    return
+            clock.tick(30)
+
     def main():
-        global game_speed, x_pos_bg, y_pos_bg, points, obstacles, coins, coini, boosts
+        global game_speed, x_pos_bg, y_pos_bg, points, obstacles, coins, coini, boosts, death_count
         run = True
         clock = pygame.time.Clock()
         player = Player()
@@ -223,6 +291,7 @@ def runner():
 
         def score():
             global points, game_speed
+
             points += 1
             if points % 100 == 0:
                 game_speed += 1
@@ -247,6 +316,8 @@ def runner():
                 x_pos_bg = 0
             x_pos_bg -= game_speed
 
+        start()
+        pygame.display.update()
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -308,45 +379,11 @@ def runner():
                 obstacle.draw(SCREEN)
                 obstacle.update()
                 if player.hero_rect.colliderect(obstacle.rect):
-                    pygame.time.delay(1000)
-                    death_count += 1
-                    menu(death_count)
-            clock.tick(30)
-            pygame.display.update()
-
-    def menu(death_count):
-        global points, coini
-
-        run = True
-        while run:
-            SCREEN.fill((255, 255, 255))
-            font = pygame.font.Font('freesansbold.ttf', 30)
-            if death_count == 0:
-                text = font.render("Press any Key to Start", True, (0, 0, 0))
-            elif death_count > 0:
-                text = font.render("Press any Key to Restart", True, (0, 0, 0))
-                score = font.render("Your Score: " + str(points), True, (0, 0, 0))
-                coinsi = font.render("Coins: " + str(coini), True, (0, 0, 0))
-                coinsRect = coinsi.get_rect()
-                scoreRect = score.get_rect()
-                scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50)
-                coinsRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 100)
-                SCREEN.blit(coinsi, coinsRect)
-                SCREEN.blit(score, scoreRect)
-                events = pygame.event.get()
-                for event in events:
-                    if event.type == pygame.QUIT:
-                        run = False
-            textRect = text.get_rect()
-            textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-            SCREEN.blit(text, textRect)
-            SCREEN.blit(RUN[0], (SCREEN_WIDTH // 2 - 20, SCREEN_HEIGHT // 2 - 140))
-            pygame.display.update()
-            events = pygame.event.get()
-            for event in events:
-                if event.type == pygame.QUIT:
+                    pygame.time.delay(900)
+                    final_score()
                     run = False
-                if event.type == pygame.KEYDOWN:
-                    main()
+                    final()
+            pygame.display.flip()
+            clock.tick(30)
 
-    menu(death_count=0)
+    main()
