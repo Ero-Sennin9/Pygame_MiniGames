@@ -129,13 +129,13 @@ class Player(pygame.sprite.Sprite):
                 self.y = y
                 self.repaint()
             if self.level[y][x] == '&':
-                Tanks.tanks()
+                Tanks.tanki()
                 screen = pygame.display.set_mode(size)
             if self.level[y][x] == '*':
                 runner1.runner()
                 screen = pygame.display.set_mode(size)
             if self.level[y][x] == '%':
-                test.test()
+                test.test1()
                 screen = pygame.display.set_mode(size)
 
     def update(self, events):
