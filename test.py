@@ -1,176 +1,132 @@
-#импорт модулей:
+    # импорт модулей:
 def test1():
-    global time, condition2
+    global times, condition1, condition2, condition, rad, time
     import pygame as pg
-    from random import randrange
     import pymunk.pygame_util
     pymunk.pygame_util.positive_y_is_up = False
     import math
+    import time
 
-    #параметры PyGame
-    RES = WIDTH, HEIGHT = 1200, 700
+    # параметры PyGame
+    RES = WIDTH, HEIGHT = 1200, 700  # размеры окна
     FPS = 60
-    condition = True
-    condition1 = True
-    condition2 = True
-    rad = 350
+    condition = True  # возможность прыжка для первого игрока
+    condition1 = True  # возможность прыжка для второго игрока
+    condition2 = True  # статус игры
+    rad = 350  # радиус движущегося кольца
+    SPEED = 15  # скорость кольца
+    times = []  # хранение времени
 
+    # инициализация pygame и pymunk
     pg.init()
     surface = pg.display.set_mode(RES)
-    clock = pg.time.Clock()
-    clock2 = pg.time.Clock()
+    clock = pg.time.Clock()  # создание часов
     draw_options = pymunk.pygame_util.DrawOptions(surface)
 
-    #настройки Pymunk
-    space = pymunk.Space()
-    space.gravity = 0, 0
-    time = 0
+
+    # настройки Pymunk
+    space = pymunk.Space()  # пространство дял объектов
+    space.gravity = 0, 0  # гравитация
+    time = 0  # время
 
 
-    def mouse_coll_func(arbiter, space, data):
-        s1, s2 = arbiter.shapes
+    def mouse_coll_func(arbiter, space, data):  # функции, обрабатывающие столкновения
         global condition, condition1, condition2
         condition, condition1 = True, True
         condition2 = False
-        # arbiter.shapes[0].body.apply_impulse_at_local_point((0, 20000), (0, 0))
         return True
 
 
     def mouse_coll_func2(arbiter, space, data):
-        s1, s2 = arbiter.shapes
         global condition
         condition = True
         return True
 
 
     def mouse_coll_func3(arbiter, space, data):
-        s1, s2 = arbiter.shapes
         global condition
         condition = False
         return True
 
 
     def mouse_coll_func4(arbiter, space, data):
-        s1, s2 = arbiter.shapes
         global condition1
         condition1 = True
-        # print('condition1', condition1)
         return True
 
 
     def mouse_coll_func5(arbiter, space, data):
-        s1, s2 = arbiter.shapes
         global condition1
         condition1 = False
-        # print('condition1', condition1)
         return True
 
 
-    space.add_collision_handler(
-        1, 2
-    ).post_solve = mouse_coll_func
-    space.add_collision_handler(
-        2, 3
-    ).post_solve = mouse_coll_func2
-    space.add_collision_handler(
-        2, 3
-    ).separate = mouse_coll_func3
-
-    space.add_collision_handler(
-        1, 3
-    ).post_solve = mouse_coll_func4
-    space.add_collision_handler(
-        1, 3
-    ).separate = mouse_coll_func5
+    space.add_collision_handler(1, 2).post_solve = mouse_coll_func  # назначение функций, обрабатывающих столкновения
+    space.add_collision_handler(2, 3).post_solve = mouse_coll_func2
+    space.add_collision_handler(2, 3).separate = mouse_coll_func3
+    space.add_collision_handler(1, 3).post_solve = mouse_coll_func4
+    space.add_collision_handler(1, 3).separate = mouse_coll_func5
 
 
-
-    def create_square(space, pos, colision, data7):
-        square_mass, square_size = 1, (40, 40)
-        square_moment = pymunk.moment_for_box(square_mass, square_size)
-        square_body = pymunk.Body(square_mass, square_moment)
-        square_body.position = pos
-        square_shape = pymunk.Poly.create_box(square_body, square_size)
-        square_shape.elasticity = 0.6
-        square_shape.friction = 0.5
-        square_shape.color = [*data7, 255]
-        square_shape.collision_type = colision
-        space.add(square_body, square_shape)
+    def create_square(space, pos, colision, color, size, kin=False, mass=1):  # создание прямоугольника
+        square_mass, square_size = mass, size  # масса и размер
+        square_moment = pymunk.moment_for_box(square_mass, square_size)  # рассчет момента для объекта исходжя из размера и веса
+        if kin:  # создаем объект исходжя из его типа
+            square_body = pymunk.Body(square_mass, square_moment, pymunk.Body.KINEMATIC)
+        else:
+            square_body = pymunk.Body(square_mass, square_moment)  # по умолчанию - DINAMIC
+        square_body.position = pos  # задаем координаты объекта
+        square_shape = pymunk.Poly.create_box(square_body, square_size)  # создаем его отображение
+        square_shape.elasticity = 0.6  # упругость
+        square_shape.friction = 0.5  # трение
+        square_shape.color = [*color, 255]  # цвет
+        square_shape.collision_type = colision  # тип предмета необходим для обрабатывания сталкиваний
+        space.add(square_body, square_shape)  # добавляем сам объект и его отображение в пространство
         return square_body
-
-
-    def create_kin(space, pos, colision, r):
-        square_mass, square_size = 1, ((rad + 47) * 2 * math.sin(math.radians(22.5)), 40)
-        square_moment = pymunk.moment_for_box(square_mass, square_size)
-        square_body = pymunk.Body(square_mass, square_moment, pymunk.Body.KINEMATIC)
-        square_body.position = pos
-        square_shape = pymunk.Poly.create_box(square_body, square_size)
-        square_shape.elasticity = 0.6
-        square_shape.friction = 0.5
-        square_shape.color = [r, r, 255, 255]
-        square_shape.collision_type = colision
-        space.add(square_body, square_shape)
-        return square_body
-
-
-    def create_bruh(space, pos, colision, r, w, h):
-        square_mass, square_size = 0.2, (w, h)
-        square_moment = pymunk.moment_for_box(square_mass, square_size)
-        square_body = pymunk.Body(square_mass, square_moment)
-        square_body.position = pos
-        square_shape = pymunk.Poly.create_box(square_body, square_size)
-        square_shape.elasticity = 0.6
-        square_shape.friction = 0.5
-        square_shape.color = [r / 2, 255 - r, 255 - r, 255]
-        square_shape.collision_type = colision
-        space.add(square_body, square_shape)
-        return square_body
-
-
 
     def main():
-        global time, condition2
-        x1, y1 = 600, 350
-        data = [create_square(space, (x1 - rad + 20, y1), 1, [255, 0, 0]),
-                create_square(space, (x1 + rad - 20, y1), 2, [0, 0, 255])]
-        square_body = data[1]
-        square_body1 = data[0]
-        impulse = 600
-        x1, y1 = 600, 350
-        o = (rad * rad / 2) ** 0.5
-        data2 = [create_kin(space, (x1, y1 - rad), 3, 100),
-                 create_kin(space, (x1 + o, y1 - o), 3, 100),
-                 create_kin(space, (x1 + rad, y1), 3, 100),
-                 create_kin(space, (x1 + o, y1 + o), 3, 100),
-                 create_kin(space, (x1, y1 + rad), 3, 100),
-                 create_kin(space, (x1 - rad, y1), 3, 100),
-                 create_kin(space, (x1 - o, y1 + o), 3, 100),
-                 create_kin(space, (x1 - o, y1 - o), 3, 100)]
-        degree = 0
-        row, col = 5, 10
-        w, h = 80, 30
-        data3 = []
-        for i in range(row):
+        global times, condition1, condition2, condition, rad, time
+        x1, y1 = WIDTH // 2, HEIGHT // 2  # центр движущегося кольца
+        players = [create_square(space, (x1 - rad + 20, y1), 1, [255, 0, 0], (40, 40)),  # создание игроков
+                   create_square(space, (x1 + rad - 20, y1), 2, [0, 0, 255], (40, 40))]
+        square_body = players[1]
+        square_body1 = players[0]
+        impulse = 600  # импульс прыжков
+        o = (rad * rad / 2) ** 0.5  # расстояние для построения элементов вращающегося кольца
+        size = ((rad + 47) * 2 * math.sin(math.radians(22.5)), 40)  # размер элементов кольца
+        circle = [create_square(space, (x1, y1 - rad), 3, [200, 162, 200], size, kin=True),  # создание кольца
+                 create_square(space, (x1 + o, y1 - o), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1 + rad, y1), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1 + o, y1 + o), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1, y1 + rad), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1 - rad, y1), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1 - o, y1 + o), 3, [200, 162, 200], size, kin=True),
+                 create_square(space, (x1 - o, y1 - o), 3, [200, 162, 200], size, kin=True)]
+        degree = 0  # угол поворота кольца
+        row, col = 6, 10  # количество брусков в центре карты
+        w, h = 80, 30  # их размер
+        blocks = []
+        for i in range(row):  # создание блоков в центре окна
             data4 = []
             for j in range(col):
-                data4.append(create_bruh(space,
-                                         (x1 - w * row / 2 + w / 2 + i * w, y1 - h * col / 2 + h / 2 + j * h), 3, 100,
-                                         w, h))
-            data3.append(data4)
-        grav = False
+                data4.append(create_square(space, (x1 - w * row / 2 + w / 2 + i * w, y1 - h * col / 2 + h / 2 + j * h), 3,
+                                           [100, 100, 100], (w, h), mass=0.2))
+            blocks.append(data4)
+
+        grav = False  # значение гравитации(True - случайная гравитация, False - нулевая гравитация)
         while True:
             time += 1
             surface.fill(pg.Color('black'))
-            angle = square_body.angle % (math.pi * 2)
-            a = math.sin(angle) * impulse
+            angle = square_body.angle % (math.pi * 2)  # рассчет импульсов для двух тел в силу их вращения
+            a = math.sin(angle) * impulse  # для первого тела
             b = math.cos(angle) * impulse
             angle1 = square_body1.angle % (math.pi * 2)
-            a1 = math.sin(angle1) * impulse
+            a1 = math.sin(angle1) * impulse  # для второго тела
             b1 = math.cos(angle1) * impulse
             for i in pg.event.get():
-                if i.type == pg.QUIT:
-                    return
-                elif condition2:
+                if i.type == pg.QUIT:  # закрытие игры
+                    exit()
+                elif condition2:  # cовершение прыжков
                     if i.type == pg.KEYDOWN and i.key == pg.K_UP and condition:
                         square_body.apply_impulse_at_local_point((-a, -b), (0, 0))
                     elif i.type == pg.KEYDOWN and i.key == pg.K_LEFT and condition:
@@ -187,50 +143,46 @@ def test1():
                         square_body1.apply_impulse_at_local_point((b1, -a1), (0, 0))
                     elif i.type == pg.KEYDOWN and i.key == pg.K_s and condition1:
                         square_body1.apply_impulse_at_local_point((a1, b1), (0, 0))
-                    elif i.type == pg.KEYDOWN and i.key == pg.K_b:
+                    elif i.type == pg.KEYDOWN and i.key == pg.K_b:  # случайная гравитация
                         grav = True
-                    elif i.type == pg.KEYDOWN and i.key == pg.K_n:
+                    elif i.type == pg.KEYDOWN and i.key == pg.K_n:  # нулевая гравитация
                         grav = False
-                elif i.type == pg.KEYDOWN and i.key == pg.K_k:
+                elif i.type == pg.KEYDOWN and i.key == pg.K_k:  # перезагрузка игры
+                    time = 0  # обнуление времени
                     condition2 = True
-                    data[0].position = (x1 + rad - 20, y1)
-                    data[1].position = (x1 - rad + 20, y1)
-                    for i1 in range(row):
+                    players[0].position = (x1 + rad - 20, y1)  # размещение игроков в изначальных позициях
+                    players[1].position = (x1 - rad + 20, y1)
+                    for i1 in range(row):  # возвращение блоков в изначальные позиции
                         for j1 in range(col):
-                            data3[i1][j1].position = (x1 - w * row / 2 + w / 2 + i1 * w, y1 - h * col / 2 + h / 2 + j1 * h)
-            if not condition2:
+                            blocks[i1][j1].position = (x1 - w * row / 2 + w / 2 + i1 * w, y1 - h * col / 2 + h / 2 + j1 * h)
+            degree += SPEED * 2 / 180 * math.pi / 60  # изменение угла поворота кольца
+            degree %= 2 * math.pi
+            for i in range(len(circle)):  # вращение кольца
+                a = - rad * math.sin(degree + 45 / 180 * math.pi * i)  # вычисление позиций каждого из участков кольца
+                b = rad * math.cos(degree + 45 / 180 * math.pi * i)
+                circle[i].position = x1 - a, y1 - b
+                circle[i].angle = degree + 45 / 180 * math.pi * i
+            if time % (FPS / 2) == 0 and grav:  # установление случайной гравитации
+                import random
+                space.gravity = (random.randint(-1600, 1600), random.randint(-1600, 1600))
+                print(time)
+            elif not grav and condition2:  # нулевая гравитация
+                space.gravity = 0, 0
+            space.step(1 / FPS)  # обновление пространства с телами
+            space.debug_draw(draw_options)  # отрисовка тел
+            if not condition2:  # игра окончена
                 grav = False
-                space.gravity = 0, 1600
-                font = pg.font.Font(None, 50)
+                font = pg.font.Font(None, 50)  # вывод сообщения об окончании игры
                 font2 = pg.font.Font(None, 36)
-                text = font.render('Game Over', True, (100, 255, 100))
-                text2 = font2.render('Push K to restart', True, (255, 100, 255))
+                times.append(round(time / FPS, 2))
+                text = font.render(f'Game Over, {times[0]}', True, pg.Color('green'))
+                text2 = font2.render('Push K to restart', True, pg.Color('purple'))
                 text_x = WIDTH // 2 - text.get_width() // 2
                 text_y = HEIGHT // 2 - text.get_height() // 2
                 surface.blit(text, (text_x, text_y))
                 surface.blit(text2, (text_x, text_y + 50))
-            degree += 30 / 180 * math.pi / 60
-            degree %= 2 * math.pi
-            for i in range(len(data2)):
-                a = - rad * math.sin(degree + 45 / 180 * math.pi * i)
-                b = rad * math.cos(degree + 45 / 180 * math.pi * i)
-                data2[i].position = x1 - a, y1 - b
-                data2[i].angle = degree + 45 / 180 * math.pi * i
-            if time // 60 and grav:
-                time %= 60
-                data6 = [(0, 1600), (1600, 0), (0, -1600), (-1600, 0), (0, 0)]
-                import random
-                space.gravity = random.choice(data6)
-            elif not grav and condition2:
-                space.gravity = 0, 0
-            # square_body.angle = 0
-            # space.reindex_shapes_for_body(square_body)
-            # square_body.center_of_gravity = (0, 0)
-            # print(square_body.rotation_vector)
-            # print(square_body.center_of_gravity.angle_de)
-            space.step(1 / FPS)
-            space.debug_draw(draw_options)
-            pg.display.flip()
+            else:
+                times = []
+            pg.display.flip()  # обновление экрана pygame
             clock.tick(FPS)
-
     main()
