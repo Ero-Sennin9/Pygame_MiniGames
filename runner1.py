@@ -161,7 +161,7 @@ def runner():
             super().__init__(image)
             self.rect.y = 470
 
-    class Obstacle_boost:
+    class Obstacle_boost():
         def __init__(self, image):
             self.image = image
             self.rect = self.image[0].get_rect()
@@ -186,7 +186,7 @@ def runner():
             super().__init__(image, self.type)
             self.rect.y = 470
 
-    class LargeObgects(Obstacle):
+    class LargeObgects(Obstacle, pygame.sprite.Sprite):
         def __init__(self, image):
             self.type = random.randint(0, 2)
             super().__init__(image, self.type)

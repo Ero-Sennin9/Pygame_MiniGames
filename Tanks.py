@@ -9,6 +9,10 @@ import pygame.sprite
 def tanki():
     global running, fire, time, game, score, result
     FPS = 60  # настройки pygame
+    x = 100
+    y = 45
+    os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x, y)
+    os.environ['SDL_VIDEO_CENTERED'] = '0'
     pg.init()
     SIZE = WIDTH, HEIGHT = 1500, 700
     screen = pg.display.set_mode(SIZE)
