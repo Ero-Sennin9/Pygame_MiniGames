@@ -32,7 +32,7 @@ def runner():
                     pygame.image.load(os.path.join("Assets/Objects", "SmallCactus2.png")),
                     pygame.image.load(os.path.join("Assets/Objects", "SmallCactus3.png"))]
     LARGE_OBJECTS = [pygame.image.load(os.path.join("Assets/Objects", "rock_large.png")),
-                     pygame.image.load(os.path.join("Assets/Objects", "tree_large.png")),
+                     pygame.image.load(os.path.join("Assets/Objects", "LargeCactus2.png")),
                      pygame.image.load(os.path.join("Assets/Objects", "LargeCactus3.png"))]
 
     BIRD = [pygame.image.load(os.path.join("Assets/Bird", "bird1.png")),
