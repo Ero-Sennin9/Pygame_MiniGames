@@ -125,7 +125,7 @@ def test1():
             b1 = math.cos(angle1) * impulse
             for i in pg.event.get():
                 if i.type == pg.QUIT:  # закрытие игры
-                    exit()
+                    return
                 elif condition2:  # cовершение прыжков
                     if i.type == pg.KEYDOWN and i.key == pg.K_UP and condition:
                         square_body.apply_impulse_at_local_point((-a, -b), (0, 0))
