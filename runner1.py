@@ -141,11 +141,11 @@ def runner():
         def draw(self, SCREEN):
             SCREEN.blit(self.image[self.type], self.rect)
 
-    class Obstacle_coin:
+    class Obstacle_coin():
         def __init__(self, image):
             self.image = image
             self.rect = self.image[0].get_rect()
-            self.rect.x = SCREEN_WIDTH
+            self.rect.x = SCREEN_WIDTH * 2
 
         def update(self):
             self.rect.x -= game_speed
@@ -165,7 +165,7 @@ def runner():
         def __init__(self, image):
             self.image = image
             self.rect = self.image[0].get_rect()
-            self.rect.x = SCREEN_WIDTH * int(random.randint(5, 10))
+            self.rect.x = SCREEN_WIDTH * int(random.randint(5, 11))
 
         def update(self):
             self.rect.x -= game_speed
@@ -190,7 +190,7 @@ def runner():
         def __init__(self, image):
             self.type = random.randint(0, 2)
             super().__init__(image, self.type)
-            self.rect.y = 445
+            self.rect.y = 450
 
     class Bird(Obstacle):
         def __init__(self, image):
@@ -350,7 +350,7 @@ def runner():
                     if game_speed < 2:
                         game_speed = 1
                     else:
-                        game_speed -= 1
+                        game_speed -= 2
 
             for obstacle in obstacles:
                 for boost in boosts:
@@ -360,17 +360,17 @@ def runner():
             if len(coins) == 0:
                 coins.append(Coin(COIN))
 
+            for obstacle in obstacles:
+                for coin in coins:
+                    if coin.rect.colliderect(obstacle.rect):
+                        coins.pop()
+
             for coin in coins:
                 coin.draw(SCREEN)
                 coin.update()
                 if player.hero_rect.colliderect(coin.rect):
                     coins.pop()
                     coini += 1
-
-            for obstacle in obstacles:
-                for coin in coins:
-                    if coin.rect.colliderect(obstacle.rect):
-                        coins.pop()
 
             score()
             coin_score()
@@ -379,7 +379,7 @@ def runner():
                 obstacle.draw(SCREEN)
                 obstacle.update()
                 if player.hero_rect.colliderect(obstacle.rect):
-                    pygame.time.delay(900)
+                    pygame.time.delay(200)
                     final_score()
                     run = False
                     final()
