@@ -2,6 +2,7 @@ import pygame
 import os
 import random
 
+
 pygame.init()
 
 SCREEN_HEIGHT = 600
@@ -30,7 +31,7 @@ SMALL_CACTUS = [pygame.image.load(os.path.join("Assets/Objects", "SmallCactus1.p
                 pygame.image.load(os.path.join("Assets/Objects", "SmallCactus2.png")),
                 pygame.image.load(os.path.join("Assets/Objects", "SmallCactus3.png"))]
 LARGE_OBJECTS = [pygame.image.load(os.path.join("Assets/Objects", "rock_large.png")),
-                 pygame.image.load(os.path.join("Assets/Objects", "tree_large.png")),
+                 pygame.image.load(os.path.join("Assets/Objects", "LargeCactus2.png")),
                  pygame.image.load(os.path.join("Assets/Objects", "LargeCactus3.png"))]
 
 BIRD = [pygame.image.load(os.path.join("Assets/Bird", "bird1.png")),
@@ -42,7 +43,6 @@ BG = pygame.image.load(os.path.join("Assets/Other", "back-2.png"))
 COIN = [pygame.image.load(os.path.join("Assets/Other", "coin.png"))]
 
 BOOST = [pygame.image.load(os.path.join("Assets/Other", "boost.png"))]
-
 
 class Player:
     X_POS = 80
@@ -125,7 +125,6 @@ class Player:
     def draw(self, SCREEN):
         SCREEN.blit(self.image, (self.hero_rect.x, self.hero_rect.y))
 
-
 class Obstacle:
     def __init__(self, image, type):
         self.image = image
@@ -141,12 +140,11 @@ class Obstacle:
     def draw(self, SCREEN):
         SCREEN.blit(self.image[self.type], self.rect)
 
-
-class Obstacle_coin:
+class Obstacle_coin():
     def __init__(self, image):
         self.image = image
         self.rect = self.image[0].get_rect()
-        self.rect.x = SCREEN_WIDTH
+        self.rect.x = SCREEN_WIDTH * 2
 
     def update(self):
         self.rect.x -= game_speed
@@ -157,18 +155,16 @@ class Obstacle_coin:
     def draw(self, SCREEN):
         SCREEN.blit(self.image[0], self.rect)
 
-
 class Coin(Obstacle_coin):
     def __init__(self, image):
         super().__init__(image)
         self.rect.y = 470
 
-
-class Obstacle_boost:
+class Obstacle_boost():
     def __init__(self, image):
         self.image = image
         self.rect = self.image[0].get_rect()
-        self.rect.x = SCREEN_WIDTH * int(random.randint(5, 10))
+        self.rect.x = SCREEN_WIDTH * int(random.randint(5, 11))
 
     def update(self):
         self.rect.x -= game_speed
@@ -178,12 +174,10 @@ class Obstacle_boost:
     def draw(self, SCREEN):
         SCREEN.blit(self.image[0], self.rect)
 
-
 class Boost(Obstacle_boost):
     def __init__(self, image):
         super().__init__(image)
         self.rect.y = 430
-
 
 class SmallCactus(Obstacle):
     def __init__(self, image):
@@ -191,13 +185,11 @@ class SmallCactus(Obstacle):
         super().__init__(image, self.type)
         self.rect.y = 470
 
-
-class LargeObgects(Obstacle):
+class LargeObgects(Obstacle, pygame.sprite.Sprite):
     def __init__(self, image):
         self.type = random.randint(0, 2)
         super().__init__(image, self.type)
-        self.rect.y = 445
-
+        self.rect.y = 450
 
 class Bird(Obstacle):
     def __init__(self, image):
@@ -211,7 +203,6 @@ class Bird(Obstacle):
             self.index = 0
         SCREEN.blit(self.image[self.index // 5], self.rect)
         self.index += 1
-
 
 def start():
     run = True
@@ -233,7 +224,6 @@ def start():
                 return
         clock.tick(30)
 
-
 def final():
     run = True
     clock = pygame.time.Clock()
@@ -253,7 +243,6 @@ def final():
             elif event.type == pygame.KEYDOWN:
                 main()
         clock.tick(30)
-
 
 def final_score():
     global points, coini, death_count
@@ -282,7 +271,6 @@ def final_score():
             elif event.type == pygame.KEYDOWN:
                 return
         clock.tick(30)
-
 
 def main():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles, coins, coini, boosts, death_count
@@ -361,7 +349,7 @@ def main():
                 if game_speed < 2:
                     game_speed = 1
                 else:
-                    game_speed -= 1
+                    game_speed -= 2
 
         for obstacle in obstacles:
             for boost in boosts:
@@ -371,17 +359,17 @@ def main():
         if len(coins) == 0:
             coins.append(Coin(COIN))
 
+        for obstacle in obstacles:
+            for coin in coins:
+                if coin.rect.colliderect(obstacle.rect):
+                    coins.pop()
+
         for coin in coins:
             coin.draw(SCREEN)
             coin.update()
             if player.hero_rect.colliderect(coin.rect):
                 coins.pop()
                 coini += 1
-
-        for obstacle in obstacles:
-            for coin in coins:
-                if coin.rect.colliderect(obstacle.rect):
-                    coins.pop()
 
         score()
         coin_score()
@@ -390,12 +378,11 @@ def main():
             obstacle.draw(SCREEN)
             obstacle.update()
             if player.hero_rect.colliderect(obstacle.rect):
-                pygame.time.delay(900)
+                pygame.time.delay(200)
                 final_score()
                 run = False
                 final()
         pygame.display.flip()
         clock.tick(30)
-
 
 main()
